@@ -476,16 +476,25 @@ export default {
             }
           ).then(response=>{
             const reader = response.body.getReader();
-      
+            let preValue = "";
             function readStream(reader) {
               return reader.read().then(({ done, value }) => {
                 if (done) {
                   return;
                 }
                 let decodeds = new TextDecoder().decode(value);
+                decodeds = preValue+decodeds;
                 let decodedArray = decodeds.split("data: ")
-
-                decodedArray.forEach(decoded => {
+                // 获取最后一个string， 和前一个的最后一个元素拼装后再解析 nginx 反向代理之后获取到的值不完整
+                decodedArray.forEach((decoded,index) => {
+                  if (index === (decodedArray.length -1) && decoded.trim() !=="[DONE]"){
+                    try {
+                      JSON.parse(decoded);
+                    } catch (e) {
+                      preValue = decoded;
+                      return;
+                    }
+                  }
                   if(decoded!==""){
                     if(decoded.trim()==="[DONE]"){
                       return;
@@ -529,7 +538,7 @@ export default {
           }
         ).then(response=>{
           const reader = response.body.getReader();
-    
+
           function readStream(reader) {
             return reader.read().then(({ done, value }) => {
               if (done) {
